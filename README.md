@@ -4,7 +4,7 @@ Start by viewing [this application](https://dl.dropboxusercontent.com/u/2193160/
 
 ![](media/App.png)
 
-Make sure to tilt the map by holding down the right mouse button and sliding the mouse up. Then, slide the bottom slider back and forth to see the data "ripple" through time. This is displaying the density of 1 million NYC taxi pickup over a time period aggregated over 30 minute interval. This application is based on the new [4.2 ArcGIS API for JavaScript](https://developers.arcgis.com/javascript/) and specifically on the [externalRenderers](https://developers.arcgis.com/javascript/latest/api-reference/esri-views-3d-externalRenderers.html) capabilities, where a JS application can delegate the rendering to custom [WebGL](https://www.khronos.org/webgl/) code.
+Make sure to tilt the map by holding down the right mouse button and sliding the mouse up. Then, slide the bottom slider back and forth to see the data "ripple" through time. This is displaying the density of 1 million [NYC taxi](http://www.nyc.gov/html/tlc/html/about/trip_record_data.shtml) pickups aggregated over 30 minute intervals. This application is based on the new [4.2 ArcGIS API for JavaScript](https://developers.arcgis.com/javascript/) and specifically on the [externalRenderers](https://developers.arcgis.com/javascript/latest/api-reference/esri-views-3d-externalRenderers.html) capabilities, where a JS application can delegate the rendering to custom [WebGL](https://www.khronos.org/webgl/) code.
 
 This project is divided into 2 sub-projects:
 
