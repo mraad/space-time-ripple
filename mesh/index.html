@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <title>WebGL Mesh</title>
+    <link rel="stylesheet" href="//js.arcgis.com/4.2/dijit/themes/claro/claro.css">
+    <link rel="stylesheet" href="//js.arcgis.com/4.2/esri/css/main.css">
+    <link rel="stylesheet" href="css/main.css">
+    <script src="//js.arcgis.com/4.2/"></script>
+    <script src="js/main.js"></script>
+</head>
+<body>
+<div id="panelView"></div>
+<div id="panelSettings" class="bg">
+    <div id="icon" class="bg"></div>
+    <div class="inner">
+        <div class="row">
+            <div id="switchMesh" class="switch on">MESH</div>
+            <div id="switchSurface" class="switch">SURFACE</div>
+        </div>
+        <div class="row"></div>
+        <div class="row">START COLOR
+            <div id="startSwatch" class="swatch" style="background-color: #0000ff"></div>
+        </div>
+        <div id="startColor"></div>
+        <div class="row"></div>
+        <div class="row">END COLOR
+            <div id="endSwatch" class="swatch" style="background-color: #ff0000"></div>
+        </div>
+        <div id="endColor"></div>
+        <div class="row"></div>
+        <div class="row" style="margin-bottom: 5px">RADIUS</div>
+        <div id="radiusSlider" class="row"></div>
+        <div class="row"></div>
+    </div>
+</div>
+<div id="panelBottom" class="bg">
+    <div id="panelDate"></div>
+    <div id="panelSlider"></div>
+</div>
+</body>
+</html>
