@@ -1,0 +1,21 @@
+{
+  "name": "space-time-ripple",
+  "version": "1.0.0",
+  "description": "Space Time Ripple",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mraad/space-time-ripple.git"
+  },
+  "author": "Mansour Raad",
+  "license": "Apache License 2.0",
+  "bugs": {
+    "url": "https://github.com/mraad/space-time-ripple/issues"
+  },
+  "homepage": "https://github.com/mraad/space-time-ripple#readme",
+  "dependencies": {
+    "@types/arcgis-js-api": "^4.2.0"
+  }
+}

@@ -100,3 +100,8 @@ In addition, it is **HIGHLY** recommended to use an IDE like [IntelliJ](https://
 
 - <https://www.khronos.org/files/webgl/webgl-reference-card-1_0.pdf>
 - <https://webglfundamentals.org/webgl/lessons/webgl-fundamentals.html>
+
+### Notes to self
+
+- Initialize the project using `npm init`
+- Install TS typings using `npm install --save @types/arcgis-js-api`
