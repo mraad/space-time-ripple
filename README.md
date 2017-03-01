@@ -1,4 +1,4 @@
-# Mesh Application
+# Space Time Ripple
 
 Start by viewing [this application](https://dl.dropboxusercontent.com/u/2193160/mesh/index.html).
 
