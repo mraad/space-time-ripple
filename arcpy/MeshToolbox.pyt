@@ -3,14 +3,13 @@
 # pip install sortedcontainers
 #
 
+import arcpy
 import json
 import os
 import time
 from datetime import timedelta
 from math import *
 from sortedcontainers import SortedDict
-
-import arcpy
 
 
 class Toolbox(object):
@@ -96,8 +95,8 @@ class MeshTool(object):
         cols = cells
         rows = cells
 
+        # Generate indices to triangle vertices
         indicies = []
-
         for r0 in range(0, rows - 1):
             for c0 in range(0, cols - 1):
                 r1 = r0 + 1
@@ -111,6 +110,7 @@ class MeshTool(object):
         x_del = (xmax - xmin) / (cols - 1)
         y_del = (ymax - ymin) / (rows - 1)
 
+        # Generate vertices locations
         vertices = []
         y = ymax
         for r in range(0, rows):
@@ -161,17 +161,21 @@ class MeshTool(object):
         step_max = int(max(1, max_range / 100))
         step_cnt = 0
         arcpy.SetProgressor("step", "Searching...", 0, max_range, step_max)
+        # Query space and time attributes from features
         with arcpy.da.SearchCursor(input_fc, ["SHAPE@X", "SHAPE@Y", "pdate"], spatial_reference=sr_84) as cursor:
             for elem in cursor:
                 step_cnt += 1
                 arcpy.SetProgressorPosition(step_cnt)
                 shape_x = elem[0]
                 shape_y = elem[1]
+                # Make sure it is in the map extent
                 if xmin < shape_x < xmax and ymin < shape_y < ymax:
                     base_date_time = elem[2]
+                    # Snap X/Y to ROW/COL bucket
                     col = floor(x_fac * (shape_x - xmin))
                     row = cells - floor(y_fac * (shape_y - ymin))
                     tup = (row, col)
+                    # Snap TIME to a temporal bucket
                     time_key = int(time.mktime(base_date_time.timetuple()) / seconds)
                     if time_key in time_dict:
                         time_val = time_dict[time_key]
@@ -187,6 +191,7 @@ class MeshTool(object):
         p_mu = 0.0
         p_m2 = 0.0
         data = []
+        # Go back through the data and calc mean and stdev in one pass
         for tk, tv in time_dict.items():
             points = []
             for pk, p in tv.items():
@@ -207,6 +212,7 @@ class MeshTool(object):
         p_max = p_mu + sd
         p_del = p_max - p_min if p_max > p_min else 1.0
         arcpy.SetProgressorLabel("Normalizing data...")
+        # Go back again and normalize between mean +/- 1 stddev where min weight is 0.2
         for elem in data:
             for point in elem["points"]:
                 p = point["p"]
