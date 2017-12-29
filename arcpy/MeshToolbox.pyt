@@ -24,11 +24,12 @@ class MeshTool(object):
         self.label = "Mesh Tool"
         self.description = "Mesh Tool"
         self.canRunInBackground = False
+        self.input_fc = None
 
     def getParameterInfo(self):
         output_fl = arcpy.Parameter(
-            name='extent',
-            displayName='extent',
+            name='mesh',
+            displayName='mesh',
             direction='Output',
             datatype='Feature Layer',
             parameterType='Derived')
@@ -51,7 +52,7 @@ class MeshTool(object):
 
         min_count = arcpy.Parameter(
             name="min_count",
-            displayName="Min Count",
+            displayName="Min Count Per Cell",
             direction="Input",
             datatype="Long",
             parameterType="Required")
@@ -59,7 +60,7 @@ class MeshTool(object):
 
         interval = arcpy.Parameter(
             name="interval",
-            displayName="Interval",
+            displayName="Time Interval",
             direction="Input",
             datatype="String",
             parameterType="Required")
@@ -73,13 +74,54 @@ class MeshTool(object):
             parameterType="Required")
         path.value = os.path.join(os.path.dirname(__file__), "heat.js")
 
-        return [output_fl, input_fc, num_cells, min_count, interval, path]
+        date_field = arcpy.Parameter(
+            name="date_field",
+            displayName="Date Field",
+            direction="Input",
+            datatype="String",
+            parameterType="Required")
+        date_field.filter.type = "ValueList"
+        date_field.filter.list = []
+
+        case_field = arcpy.Parameter(
+            name="case_field",
+            displayName="Case Field",
+            direction="Input",
+            datatype="String",
+            parameterType="Required")
+        case_field.filter.type = "ValueList"
+        case_field.filter.list = []
+
+        # bbox = arcpy.Parameter(
+        #     name="bbox",
+        #     displayName="Bounding Box",
+        #     direction="Input",
+        #     datatype="GPExtent",
+        #     parameterType="Required")
+
+        return [output_fl, input_fc, num_cells, date_field, case_field, min_count, interval, path]
 
     def isLicensed(self):
         return True
 
     def updateParameters(self, parameters):
-        return
+        input_fc = parameters[1].value
+        if self.input_fc != input_fc:
+            self.input_fc = input_fc
+            date_field = parameters[3]
+            case_field = parameters[4]
+            date_list = []
+            case_list = []
+            description = arcpy.Describe(input_fc)
+            for field in description.fields:
+                if field.type == "Date":
+                    date_list.append(field.name)
+                if field.type in ["Double", "Integer", "Single", "SmallInteger"]:
+                    case_list.append(field.name)
+            date_field.filter.list = date_list
+            date_field.value = date_list[0] if len(date_list) > 0 else ""
+            case_field.filter.list = case_list
+            case_field.value = case_list[0] if len(case_list) > 0 else ""
 
     def updateMessages(self, parameters):
         return
@@ -113,9 +155,9 @@ class MeshTool(object):
         # Generate vertices locations
         vertices = []
         y = ymax
-        for r in range(0, rows):
+        for _ in range(0, rows):
             ofs = xmin
-            for c in range(0, cols):
+            for _ in range(0, cols):
                 vertices.extend([ofs, y, 100])
                 ofs += x_del
             y -= y_del
@@ -133,7 +175,7 @@ class MeshTool(object):
         }
         return obj
 
-    def create_data(self, extent_84, sr_84, input_fc, cells, min_count, interval):
+    def create_data(self, extent_84, sr_84, input_fc, cells, min_count, interval, date_field, case_field):
         int_text = interval[-1]
         int_nume = int(interval[:-1])
         if int_text == "s":
@@ -162,7 +204,8 @@ class MeshTool(object):
         step_cnt = 0
         arcpy.SetProgressor("step", "Searching...", 0, max_range, step_max)
         # Query space and time attributes from features
-        with arcpy.da.SearchCursor(input_fc, ["SHAPE@X", "SHAPE@Y", "pdate"], spatial_reference=sr_84) as cursor:
+        fields = ["SHAPE@X", "SHAPE@Y", date_field, case_field]
+        with arcpy.da.SearchCursor(input_fc, fields, spatial_reference=sr_84) as cursor:
             for elem in cursor:
                 step_cnt += 1
                 arcpy.SetProgressorPosition(step_cnt)
@@ -170,21 +213,23 @@ class MeshTool(object):
                 shape_y = elem[1]
                 # Make sure it is in the map extent
                 if xmin < shape_x < xmax and ymin < shape_y < ymax:
-                    base_date_time = elem[2]
+                    date_value = elem[2]
+                    case_value = elem[3]
                     # Snap X/Y to ROW/COL bucket
                     col = floor(x_fac * (shape_x - xmin))
                     row = cells - floor(y_fac * (shape_y - ymin))
                     tup = (row, col)
                     # Snap TIME to a temporal bucket
-                    time_key = int(time.mktime(base_date_time.timetuple()) / seconds)
+                    time_key = int(time.mktime(date_value.timetuple()) / seconds)
                     if time_key in time_dict:
                         time_val = time_dict[time_key]
                         if tup in time_val:
-                            time_val[tup] += 1
+                            prev_val, prev_cnt = time_val[tup]
+                            time_val[tup] = (max(prev_val, case_value), prev_cnt + 1)
                         else:
-                            time_val[tup] = 1
+                            time_val[tup] = (case_value, 1)
                     else:
-                        time_dict[time_key] = {tup: 1}
+                        time_dict[time_key] = {tup: (case_value, 1)}
         arcpy.SetProgressor("default")
         arcpy.SetProgressorLabel("Creating data...")
         p_n = 0
@@ -194,9 +239,11 @@ class MeshTool(object):
         # Go back through the data and calc mean and stdev in one pass
         for tk, tv in time_dict.items():
             points = []
-            for pk, p in tv.items():
-                if p >= min_count:
-                    row, col = pk
+            for rc_tup, case_tup in tv.items():
+                case_value, case_count = case_tup
+                if case_count >= min_count:
+                    row, col = rc_tup
+                    p = case_value  # plot the max value
                     points.append({"r": row, "c": col, "p": p, "w": 1.0})
                     p_n += 1
                     delta = p - p_mu
@@ -228,11 +275,15 @@ class MeshTool(object):
     def execute(self, parameters, messages):
         input_fc = parameters[1].value
         num_cells = parameters[2].value
-        min_count = parameters[3].value
-        interval = parameters[4].value
-        output_file = parameters[5].value
+        date_field = parameters[3].value
+        case_field = parameters[4].value
+        min_count = parameters[5].value
+        interval = parameters[6].value
+        output_file = parameters[7].value
+        # bbox = parameters[8].value
 
         sr_84 = arcpy.SpatialReference(4326)
+        # extent_84 = bbox.projectAs(sr_84)
 
         if hasattr(arcpy, "mapping"):
             map_doc = arcpy.mapping.MapDocument('CURRENT')
@@ -243,9 +294,9 @@ class MeshTool(object):
             map_frame = gis_project.listMaps()[0]
             extent_84 = map_frame.defaultCamera.getExtent().projectAs(sr_84)
 
-        mesh = self.create_mesh(extent_84, num_cells)
+        mesh = self.create_mesh(extent_84, num_cells + 1)
 
-        data = self.create_data(extent_84, sr_84, input_fc, num_cells - 1, min_count, interval)
+        data = self.create_data(extent_84, sr_84, input_fc, num_cells, min_count, interval, date_field, case_field)
 
         arcpy.SetProgressorLabel("Saving JS...")
         obj = {"mesh": mesh, "data": data}
