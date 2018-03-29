@@ -48,7 +48,7 @@ class MeshTool(object):
             direction="Input",
             datatype="Long",
             parameterType="Required")
-        num_cells.value = 100
+        num_cells.value = 10
 
         min_count = arcpy.Parameter(
             name="min_count",
@@ -92,14 +92,14 @@ class MeshTool(object):
         case_field.filter.type = "ValueList"
         case_field.filter.list = []
 
-        # bbox = arcpy.Parameter(
-        #     name="bbox",
-        #     displayName="Bounding Box",
-        #     direction="Input",
-        #     datatype="GPExtent",
-        #     parameterType="Required")
+        bbox = arcpy.Parameter(
+            name="bbox",
+            displayName="Bounding Box",
+            direction="Input",
+            datatype="GPExtent",
+            parameterType="Required")
 
-        return [output_fl, input_fc, num_cells, date_field, case_field, min_count, interval, path]
+        return [output_fl, input_fc, num_cells, date_field, case_field, min_count, interval, path, bbox]
 
     def isLicensed(self):
         return True
@@ -118,8 +118,10 @@ class MeshTool(object):
                     date_list.append(field.name)
                 if field.type in ["Double", "Integer", "Single", "SmallInteger"]:
                     case_list.append(field.name)
+            date_list = sorted(date_list)
             date_field.filter.list = date_list
             date_field.value = date_list[0] if len(date_list) > 0 else ""
+            case_list = sorted(case_list)
             case_field.filter.list = case_list
             case_field.value = case_list[0] if len(case_list) > 0 else ""
 
@@ -280,19 +282,19 @@ class MeshTool(object):
         min_count = parameters[5].value
         interval = parameters[6].value
         output_file = parameters[7].value
-        # bbox = parameters[8].value
+        bbox = parameters[8].value
 
         sr_84 = arcpy.SpatialReference(4326)
-        # extent_84 = bbox.projectAs(sr_84)
+        extent_84 = bbox.projectAs(sr_84.exportToString())
 
-        if hasattr(arcpy, "mapping"):
-            map_doc = arcpy.mapping.MapDocument('CURRENT')
-            df = arcpy.mapping.ListDataFrames(map_doc)[0]
-            extent_84 = df.extent.projectAs(sr_84)
-        else:
-            gis_project = arcpy.mp.ArcGISProject('CURRENT')
-            map_frame = gis_project.listMaps()[0]
-            extent_84 = map_frame.defaultCamera.getExtent().projectAs(sr_84)
+        # if hasattr(arcpy, "mapping"):
+        #     map_doc = arcpy.mapping.MapDocument('CURRENT')
+        #     df = arcpy.mapping.ListDataFrames(map_doc)[0]
+        #     extent_84 = df.extent.projectAs(sr_84)
+        # else:
+        #     gis_project = arcpy.mp.ArcGISProject('CURRENT')
+        #     map_frame = gis_project.listMaps()[0]
+        #     extent_84 = map_frame.defaultCamera.getExtent().projectAs(sr_84)
 
         mesh = self.create_mesh(extent_84, num_cells + 1)
 
@@ -306,7 +308,8 @@ class MeshTool(object):
             text_file.write(");")
 
         out_nm = "Mesh"
-        ws = "in_memory"
+        # ws = "in_memory"
+        ws = arcpy.env.scratchGDB
         fc = ws + "/" + out_nm
 
         if arcpy.Exists(fc):

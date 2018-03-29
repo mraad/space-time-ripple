@@ -15,6 +15,8 @@ This project is divided into 2 sub-projects:
 
 ![](media/MeshToolbox.png)
 
+Make sure to `pip install sortedcontainers`.
+
 This tool bins over space and time the input point features to produce on the local file system a "space-time-cube" in the form of a [DOJO AMD Module](http://dojotoolkit.org/documentation/tutorials/1.10/modules/).  The following is a very simplistic output, but demonstrates the module content.
 
 ```
